@@ -28,13 +28,29 @@ if (!function_exists('json_attr')) {
     }
 }
 
+if (!function_exists('url')) {
+    /**
+     * App-absolute path -> browser URL, honouring the install's base path.
+     * Use this for every link, form action and redirect: `url('/dashboard')`.
+     */
+    function url(string $path = '/'): string
+    {
+        return \RoyalSpin\Support\Path::url($path);
+    }
+}
+
 if (!function_exists('asset')) {
-    /** Cache-busted asset URL. */
+    /**
+     * Cache-busted asset URL.
+     *
+     * Static files are served straight off disk, so they use the base path only
+     * — never the "/index.php" front-controller prefix that routes may carry.
+     */
     function asset(string $path): string
     {
         $file    = ROYAL_SPIN_ROOT . '/public/' . ltrim($path, '/');
         $version = is_file($file) ? (string) filemtime($file) : '1';
-        return '/' . ltrim($path, '/') . '?v=' . $version;
+        return \RoyalSpin\Support\Path::base() . '/' . ltrim($path, '/') . '?v=' . $version;
     }
 }
 

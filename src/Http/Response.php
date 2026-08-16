@@ -29,10 +29,14 @@ final class Response
         self::json($payload, $status);
     }
 
+    /**
+     * Redirect to an app-absolute path ('/dashboard'). The install's base path
+     * is added automatically, so this works in a subfolder too.
+     */
     public static function redirect(string $location, int $status = 302): never
     {
         http_response_code($status);
-        header('Location: ' . $location);
+        header('Location: ' . (str_starts_with($location, 'http') ? $location : \RoyalSpin\Support\Path::url($location)));
         exit;
     }
 
@@ -49,6 +53,9 @@ final class Response
 
         $data['csrf']  = Session::csrfToken();
         $data['debug'] = Env::isDebug();
+        // Prefix the frontend must put in front of every route it builds. It
+        // includes "/index.php" when the install cannot use clean URLs.
+        $data['basePath'] = \RoyalSpin\Support\Path::base() . \RoyalSpin\Support\Path::script();
 
         $viewPath = ROYAL_SPIN_ROOT . '/resources/views/' . $template . '.php';
         if (!is_file($viewPath)) {

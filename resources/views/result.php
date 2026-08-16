@@ -74,7 +74,7 @@ foreach ($results['players'] as $player) {
     <?php endforeach; ?>
 
     <div class="actions actions--split">
-        <a class="button button--ghost" href="/dashboard">Main menu</a>
-        <a class="button button--primary" href="/dashboard#create">New room</a>
+        <a class="button button--ghost" href="<?= e(url('/dashboard')) ?>">Main menu</a>
+        <a class="button button--primary" href="<?= e(url('/dashboard')) ?>#create">New room</a>
     </div>
 </div>

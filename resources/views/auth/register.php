@@ -12,7 +12,7 @@
 
         <div class="card">
             <h2>Create account</h2>
-            <form method="post" action="/register" novalidate>
+            <form method="post" action="<?= e(url('/register')) ?>" novalidate>
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <div class="field">
                     <label for="username">Username</label>
@@ -38,7 +38,7 @@
                 </div>
                 <button type="submit" class="button button--primary button--block button--huge">Create account</button>
             </form>
-            <p class="auth__switch">Already registered? <a href="/login">Sign in</a></p>
+            <p class="auth__switch">Already registered? <a href="<?= e(url('/login')) ?>">Sign in</a></p>
         </div>
     </div>
 </div>

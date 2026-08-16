@@ -62,5 +62,5 @@ $labels = [
         </section>
     <?php endif; ?>
 
-    <a class="button button--ghost button--block" href="/dashboard">Back to the dashboard</a>
+    <a class="button button--ghost button--block" href="<?= e(url('/dashboard')) ?>">Back to the dashboard</a>
 </div>

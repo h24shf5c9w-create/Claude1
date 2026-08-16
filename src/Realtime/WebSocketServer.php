@@ -422,6 +422,20 @@ final class WebSocketServer
 
     private function relayEvents(): void
     {
+        // If the newest id is behind our cursor the table was reset underneath
+        // us (a restore, a wipe, `migrate --fresh`). Without this the relay
+        // would silently ignore every future event, so rewind instead.
+        $newestId = EventBus::latestId();
+        if ($newestId < $this->lastEventId) {
+            $this->log("event table reset detected (id {$newestId} < {$this->lastEventId}) — rewinding");
+            $this->lastEventId = 0;
+            foreach ($this->connections as $connection) {
+                if ($connection->matchId !== null) {
+                    $this->sendState($connection);
+                }
+            }
+        }
+
         $events = EventBus::tail($this->lastEventId, 500);
         if ($events === []) {
             return;

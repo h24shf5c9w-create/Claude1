@@ -6,7 +6,7 @@
             <?php if (!empty($message)): ?>
                 <pre class="debug-panel"><?= e($message) ?></pre>
             <?php endif; ?>
-            <a class="button button--primary button--block" href="/dashboard">Back to the dashboard</a>
+            <a class="button button--primary button--block" href="<?= e(url('/dashboard')) ?>">Back to the dashboard</a>
         </div>
     </div>
 </div>

@@ -27,10 +27,17 @@ final class Db
             return self::$pdo;
         }
 
-        $driver = strtolower((string) Env::get('DB_DRIVER', 'mysql'));
+        // SQLite is the default so a fresh unzip runs with no configuration at
+        // all. Set DB_DRIVER=mysql in .env to use a real database server.
+        $driver = strtolower((string) Env::get('DB_DRIVER', 'sqlite'));
 
         if ($driver === 'sqlite') {
-            $path = (string) Env::get('DB_DATABASE', ROYAL_SPIN_ROOT . '/database/royal_spin.sqlite');
+            $configured = (string) Env::get('DB_DATABASE', '');
+            // A MySQL-style database *name* is not a usable SQLite path; fall
+            // back to the storage folder rather than creating a junk file.
+            $path = ($configured !== '' && (str_contains($configured, '/') || str_contains($configured, '\\')))
+                ? $configured
+                : Installer::storagePath('royal-spin.sqlite');
             if ($path !== ':memory:' && !is_dir(dirname($path))) {
                 @mkdir(dirname($path), 0775, true);
             }

@@ -88,7 +88,10 @@ export class Transport {
     }
 
     async connectSocket() {
-        if (this.closed || !('WebSocket' in window)) {
+        // The server tells us whether a realtime service exists. On hosting
+        // that cannot run one, skip straight to polling instead of spending
+        // several seconds on connections that can never succeed.
+        if (this.closed || !('WebSocket' in window) || this.options.wsEnabled === false) {
             this.startPolling();
             return;
         }

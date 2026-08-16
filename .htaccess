@@ -1,5 +1,53 @@
-# Safety net: if the document root was mistakenly pointed at the project root
-# instead of public/, refuse to serve anything from here.
+# =============================================================================
+#  ROYAL SPIN — project root
 #
-# The correct configuration is DocumentRoot /path/to/royal-spin/public
-Require all denied
+#  This file makes the game work when the whole folder is uploaded into a web
+#  directory (e.g. public_html/RoyalSpin/), which is the normal shared-hosting
+#  case. It forwards every request into public/ and blocks the folders that
+#  must never be served.
+#
+#  IMPORTANT: this file must NOT deny access wholesale. Apache inherits access
+#  rules into subdirectories, so a blanket "Require all denied" here would also
+#  block public/ and produce 403 Forbidden on the game itself.
+# =============================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # --- block the non-public folders -------------------------------------
+    # These hold source code, config and the database file. 404 rather than
+    # 403 so their existence is not advertised.
+    RewriteRule ^(src|config|database|storage|tests|bin|resources|\.git)(/|$) - [R=404,L]
+
+    # --- send everything else into public/ --------------------------------
+    # Requests that already point inside public/ are left alone.
+    RewriteCond %{REQUEST_URI} !^.*/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Hosts without mod_rewrite: at least protect the sensitive files directly.
+<FilesMatch "\.(sqlite|sqlite3|db|key|lock|env|md|sql|json|lock)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Never serve dotfiles (.env, .git, ...).
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+DirectoryIndex public/index.php index.php
+
+# Do not list folder contents.
+Options -Indexes

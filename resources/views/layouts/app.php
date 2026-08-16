@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0a0d14">
     <meta name="csrf-token" content="<?= e($csrf ?? '') ?>">
+    <?php /* Lets the JS build correct URLs when the game lives in a subfolder. */ ?>
+    <meta name="base-path" content="<?= e($basePath ?? '') ?>">
     <title><?= e(($title ?? 'Royal Spin') . ' — Royal Spin') ?></title>
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')) ?>">
     <link rel="icon" href="<?= e(asset('assets/favicon.svg')) ?>" type="image/svg+xml">
@@ -15,7 +17,7 @@
 <div class="app-shell">
     <?php if (!empty($user)): ?>
         <header class="topbar">
-            <a class="topbar__brand" href="/dashboard">
+            <a class="topbar__brand" href="<?= e(url('/dashboard')) ?>">
                 <span class="topbar__crown"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#sym-crown"></use></svg></span>
                 <span class="topbar__title">ROYAL SPIN</span>
             </a>
@@ -24,8 +26,8 @@
                         aria-label="Toggle sound">
                     <span data-sound-on>🔊</span><span data-sound-off hidden>🔇</span>
                 </button>
-                <a class="topbar__user" href="/profile"><?= e($user['username']) ?></a>
-                <form method="post" action="/logout" class="topbar__logout">
+                <a class="topbar__user" href="<?= e(url('/profile')) ?>"><?= e($user['username']) ?></a>
+                <form method="post" action="<?= e(url('/logout')) ?>" class="topbar__logout">
                     <input type="hidden" name="_csrf" value="<?= e($csrf ?? '') ?>">
                     <button type="submit" class="button button--ghost button--small">Sign out</button>
                 </form>

@@ -49,7 +49,7 @@ final class AuthController
         Session::login((int) $result['user_id']);
 
         if ($request->wantsJson) {
-            Response::json(['ok' => true, 'redirect' => '/dashboard']);
+            Response::json(['ok' => true, 'redirect' => url('/dashboard')]);
         }
         Response::redirect('/dashboard');
     }
@@ -78,7 +78,7 @@ final class AuthController
         Session::login((int) $result['user_id']);
 
         if ($request->wantsJson) {
-            Response::json(['ok' => true, 'redirect' => '/dashboard']);
+            Response::json(['ok' => true, 'redirect' => url('/dashboard')]);
         }
         Response::redirect('/dashboard');
     }
@@ -87,7 +87,7 @@ final class AuthController
     {
         Session::logout();
         if ($request->wantsJson) {
-            Response::json(['ok' => true, 'redirect' => '/login']);
+            Response::json(['ok' => true, 'redirect' => url('/login')]);
         }
         Response::redirect('/login');
     }

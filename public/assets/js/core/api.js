@@ -6,6 +6,25 @@
 const csrfToken = () =>
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
+/**
+ * The install's base path, e.g. '' at the domain root or '/RoyalSpin/public'
+ * in a subfolder. Every URL the frontend builds goes through `url()` so the
+ * same code works in both.
+ */
+export const basePath =
+    document.querySelector('meta[name="base-path"]')?.getAttribute('content') ?? '';
+
+/** '/api/rooms' -> '/RoyalSpin/public/api/rooms' */
+export function url(path = '/') {
+    const clean = `/${String(path).replace(/^\/+/, '')}`;
+    return `${basePath}${clean}` || '/';
+}
+
+/** Navigate, honouring the base path. Server-sent redirects already include it. */
+export function goTo(path) {
+    window.location.href = path.startsWith(basePath) && basePath !== '' ? path : url(path);
+}
+
 export class ApiError extends Error {
     constructor(message, status, field) {
         super(message);
@@ -15,7 +34,9 @@ export class ApiError extends Error {
     }
 }
 
-async function request(method, url, body) {
+async function request(method, path, body) {
+    // Callers pass app-absolute paths ('/api/rooms'); the base path is added here.
+    const target = url(path);
     const options = {
         method,
         headers: {
@@ -33,7 +54,7 @@ async function request(method, url, body) {
 
     let response;
     try {
-        response = await fetch(url, options);
+        response = await fetch(target, options);
     } catch {
         throw new ApiError('No connection to the server.', 0);
     }

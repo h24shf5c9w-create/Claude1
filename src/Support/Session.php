@@ -27,9 +27,19 @@ final class Session
             || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
 
         session_name(Env::get('SESSION_NAME', 'royal_spin_session') ?? 'royal_spin_session');
+
+        // Keep sessions on their own storage path so two copies of the game in
+        // different subfolders of one host cannot clobber each other's login.
+        $sessionPath = Installer::storagePath('sessions');
+        if (is_dir($sessionPath) || @mkdir($sessionPath, 0775, true)) {
+            if (is_writable($sessionPath)) {
+                session_save_path($sessionPath);
+            }
+        }
+
         session_set_cookie_params([
             'lifetime' => 0,
-            'path'     => '/',
+            'path'     => Path::base() === '' ? '/' : Path::base() . '/',
             'domain'   => '',
             'secure'   => $secure,
             'httponly' => true,        // no JS access to the session cookie
@@ -43,7 +53,7 @@ final class Session
         self::$started = true;
 
         // Bind the session to the user agent to make sidejacking harder.
-        $fingerprint = hash('sha256', ($_SERVER['HTTP_USER_AGENT'] ?? '') . '|' . Env::get('APP_KEY', 'royal-spin'));
+        $fingerprint = hash('sha256', ($_SERVER['HTTP_USER_AGENT'] ?? '') . '|' . Installer::applicationKey());
         if (!isset($_SESSION['_fp'])) {
             $_SESSION['_fp'] = $fingerprint;
         } elseif (!hash_equals((string) $_SESSION['_fp'], $fingerprint)) {

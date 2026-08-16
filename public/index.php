@@ -23,6 +23,19 @@ if (PHP_SAPI === 'cli-server') {
     }
 }
 
+/**
+ * Zero-configuration boot: create the storage folder, the SQLite database, the
+ * schema and the seed data on the very first request. After that this is a
+ * single file_exists() check.
+ */
+$setupProblem = \RoyalSpin\Support\Installer::ensure();
+if ($setupProblem !== null) {
+    http_response_code(503);
+    header('Content-Type: text/html; charset=utf-8');
+    require dirname(__DIR__) . '/resources/views/errors/setup.php';
+    exit;
+}
+
 Session::start();
 
 $request = Request::capture();

@@ -20,14 +20,14 @@
         <div class="card" style="border-color: rgba(242,193,78,.5)">
             <div class="card__title"><h2>You have a match running</h2></div>
             <p class="dim">Your seat, coins and upgrades are exactly where you left them.</p>
-            <a class="button button--primary button--block button--huge" href="/game/<?= (int) $activeMatch ?>">
+            <a class="button button--primary button--block button--huge" href="<?= e(url('/game/' . (int) $activeMatch)) ?>">
                 Rejoin match
             </a>
         </div>
     <?php elseif ($activeRoom !== null): ?>
         <div class="card" style="border-color: rgba(242,193,78,.5)">
             <div class="card__title"><h2>You are in room <?= e($activeRoom['code']) ?></h2></div>
-            <a class="button button--primary button--block button--huge" href="/lobby/<?= e($activeRoom['code']) ?>">
+            <a class="button button--primary button--block button--huge" href="<?= e(url('/lobby/' . $activeRoom['code'])) ?>">
                 Back to the lobby
             </a>
         </div>
@@ -79,7 +79,7 @@
     <section class="card">
         <div class="card__title">
             <h2>Your record</h2>
-            <a href="/profile" class="pill">All stats</a>
+            <a href="<?= e(url('/profile')) ?>" class="pill">All stats</a>
         </div>
         <div class="stat-grid">
             <div class="stat">

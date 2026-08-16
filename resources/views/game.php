@@ -15,8 +15,9 @@ $match = $state['match'];
      data-game="<?= json_attr([
          'matchId'   => (int) $match['id'],
          'userId'    => (int) $user['id'],
-         'wsUrl'     => $wsUrl,
-         'wsPort'    => $wsPort,
+         'wsEnabled' => (bool) $realtime['enabled'],
+         'wsUrl'     => (string) $realtime['url'],
+         'wsPort'    => (int) $realtime['port'],
          'heartbeat' => $heartbeat,
          'debug'     => (bool) $debug,
          'symbols'   => array_map(static fn (array $s): string => (string) $s['key'], $symbols),

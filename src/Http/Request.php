@@ -21,7 +21,9 @@ final class Request
         $uri    = (string) ($_SERVER['REQUEST_URI'] ?? '/');
         $path   = parse_url($uri, PHP_URL_PATH);
         $path   = is_string($path) ? $path : '/';
-        $path   = '/' . trim($path, '/');
+        // Routes are declared without the install's base path, so strip it here
+        // (e.g. "/RoyalSpin/public/login" -> "/login").
+        $path   = \RoyalSpin\Support\Path::strip($path);
 
         $input = $_GET;
         if ($method !== 'GET') {

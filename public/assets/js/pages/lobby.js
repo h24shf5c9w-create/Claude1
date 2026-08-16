@@ -7,7 +7,7 @@
  * available this falls back to a light poll of the same endpoint.
  */
 
-import { api } from '../core/api.js';
+import { api, url } from '../core/api.js';
 import { escapeHtml, toast } from '../core/ui.js';
 import { sound } from '../core/sound.js';
 
@@ -32,12 +32,12 @@ export function initLobby(root) {
     function render(room) {
         if (!room || room.closed) {
             toast('This room was closed.', 'error');
-            setTimeout(() => { window.location.href = '/dashboard'; }, 1200);
+            setTimeout(() => { window.location.href = url('/dashboard'); }, 1200);
             return;
         }
 
         if (room.status === 'active' && room.match_id) {
-            window.location.href = `/game/${room.match_id}`;
+            window.location.href = url(`/game/${room.match_id}`);
             return;
         }
 
@@ -96,21 +96,26 @@ export function initLobby(root) {
         try {
             const result = await api.get(`/api/rooms/${config.roomId}`);
             if (result.started && result.match_id) {
-                window.location.href = `/game/${result.match_id}`;
+                window.location.href = url(`/game/${result.match_id}`);
                 return;
             }
             render(result.room);
         } catch (error) {
             if (error.status === 404) {
                 toast('This room was closed.', 'error');
-                setTimeout(() => { window.location.href = '/dashboard'; }, 1200);
+                setTimeout(() => { window.location.href = url('/dashboard'); }, 1200);
                 clearInterval(pollTimer);
             }
         }
     }
 
+    /**
+     * Optional upgrade: if a realtime service is available the lobby is pushed
+     * the moment anything changes. If not (shared hosting), the poll below is
+     * the only mechanism and everything still works.
+     */
     async function connectSocket() {
-        if (!('WebSocket' in window)) {
+        if (!('WebSocket' in window) || !config.wsEnabled) {
             return;
         }
         let ticket;
@@ -120,11 +125,14 @@ export function initLobby(root) {
             return;
         }
 
-        const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const base = `${scheme}//${location.hostname}:8081`;
+        let endpoint = (config.wsUrl ?? '').trim();
+        if (!endpoint) {
+            const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            endpoint = `${scheme}//${location.hostname}:${config.wsPort || 8081}`;
+        }
 
         try {
-            socket = new WebSocket(base);
+            socket = new WebSocket(endpoint);
         } catch {
             return;
         }

@@ -15,7 +15,7 @@
 
         <div class="card">
             <h2>Sign in</h2>
-            <form method="post" action="/login" novalidate>
+            <form method="post" action="<?= e(url('/login')) ?>" novalidate>
                 <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
                 <div class="field">
                     <label for="identifier">Username or email</label>
@@ -28,7 +28,7 @@
                 </div>
                 <button type="submit" class="button button--primary button--block button--huge">Sign in</button>
             </form>
-            <p class="auth__switch">No account yet? <a href="/register">Create one</a></p>
+            <p class="auth__switch">No account yet? <a href="<?= e(url('/register')) ?>">Create one</a></p>
         </div>
     </div>
 </div>

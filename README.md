@@ -4,8 +4,12 @@ A real-time multiplayer slot-and-dice roguelite for 2–4 players. Roll a die to
 spins, spin a 3-reel machine, buy upgrades that reshape your own probabilities, and
 race everyone else to a target score.
 
-Built with **PHP 8.2+, MySQL/MariaDB, vanilla JS and a PHP WebSocket service** — no
-Composer packages, no build step, no bundler. It deploys to an ordinary LAMP VPS.
+Built with **PHP 8.2+, vanilla JS and a PHP WebSocket service** — no Composer
+packages, no build step, no bundler.
+
+**Deploying it is: upload the folder, open the URL.** No database server, no
+config file, no commands. It also runs against MySQL and a realtime service if
+you have them.
 
 > All coins are virtual and exist only inside a match. There is no deposit, no
 > payout, no purchase and no real-money mechanic of any kind.
@@ -17,14 +21,15 @@ Composer packages, no build step, no bundler. It deploys to an ordinary LAMP VPS
 1. [How the game plays](#how-the-game-plays)
 2. [Requirements](#requirements)
 3. [Installation](#installation)
-4. [Running it](#running-it)
-5. [Playing your first match](#playing-your-first-match)
-6. [Balancing](#balancing)
-7. [Tests](#tests)
-8. [Architecture](#architecture)
-9. [Production deployment](#production-deployment)
-10. [Security](#security)
-11. [Known limitations](#known-limitations)
+4. [Troubleshooting](#troubleshooting)
+5. [Realtime: two transports](#realtime-two-transports)
+6. [Playing your first match](#playing-your-first-match)
+7. [Balancing](#balancing)
+8. [Tests](#tests)
+9. [Architecture](#architecture)
+10. [Production deployment](#production-deployment)
+11. [Security](#security)
+12. [Known limitations](#known-limitations)
 
 ---
 
@@ -57,10 +62,10 @@ Third Reel Magnet plays nothing like a cheap Fruit + Golden Pair economy build.
 
 | | |
 |---|---|
-| PHP | 8.2 or newer, CLI + a web SAPI |
-| PHP extensions | `pdo_mysql`, `mbstring`, `json`, `openssl`, `sockets` (all standard) |
-| Database | MySQL 5.7+ / MariaDB 10.3+ (SQLite also supported, see below) |
-| Web server | Apache, nginx, Caddy, or PHP's built-in server for development |
+| PHP | 8.2 or newer |
+| PHP extensions | `pdo_sqlite`, `mbstring`, `json`, `openssl` (all standard) |
+| Database | **none required** — SQLite is used by default. MySQL/MariaDB optional. |
+| Web server | Any Apache/nginx shared hosting, or PHP's built-in server |
 
 There is **no Composer step** — the project ships its own autoloader, router,
 test runner and WebSocket implementation.
@@ -69,97 +74,148 @@ test runner and WebSocket implementation.
 
 ## Installation
 
-### 1. Get the code
+### Upload and open. That is the whole procedure.
 
-```bash
-git clone <your-repo-url> royal-spin
-cd royal-spin
-```
+1. Copy the folder onto your web space (e.g. `public_html/RoyalSpin/`).
+2. Open it in a browser: `https://your-domain.tld/RoyalSpin/`
 
-### 2. Create the database
+That's it. On the first request the app:
 
-```sql
-CREATE DATABASE royal_spin CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'royal_spin'@'localhost' IDENTIFIED BY 'a-strong-password';
-GRANT ALL PRIVILEGES ON royal_spin.* TO 'royal_spin'@'localhost';
-FLUSH PRIVILEGES;
-```
+* creates its `storage/` folder,
+* creates a **SQLite database file** — no database server, no credentials,
+* creates all 15 tables and seeds the 48 upgrades,
+* generates its own secret key,
+* works out its own URL prefix, so a subfolder is fine,
+* falls back to clean URLs only if `mod_rewrite` is actually available.
 
-### 3. Configure `.env`
+No `.env`, no SQL console, no commands. If anything blocks it (usually folder
+permissions), you get a page that says exactly what to change instead of a
+blank screen.
 
-```bash
-cp .env.example .env
-```
+> **Where does the data live?** In `storage/royal-spin.sqlite`. Back that file
+> up and you have backed up the whole game. Delete it and you start fresh.
 
-Then edit it:
+### Optional: use MySQL instead
+
+Only if you want to. Copy `.env.example` to `.env` and set:
 
 ```ini
-APP_ENV=production
-APP_DEBUG=false
-APP_KEY=<paste `openssl rand -hex 32` here>
-
 DB_DRIVER=mysql
 DB_HOST=127.0.0.1
 DB_DATABASE=royal_spin
 DB_USERNAME=royal_spin
-DB_PASSWORD=a-strong-password
-
-WS_HOST=0.0.0.0
-WS_PORT=8081
-WS_PUBLIC_URL=            # leave empty for dev; see "Production deployment"
+DB_PASSWORD=your-password
 ```
 
-### 4. Run the migrations + seed
+The tables are still created automatically on the first request.
+
+### Optional: run the setup from a shell
 
 ```bash
-php bin/migrate.php
+php bin/migrate.php            # same thing the first web request does
+php bin/migrate.php --fresh    # wipe and rebuild (destructive)
 ```
-
-This creates all 15 tables and seeds the upgrade catalogue from
-`config/upgrades.php`. Re-run it any time you change that file. `--fresh` drops
-everything first (destructive), `--seed-only` refreshes just the catalogue.
 
 ---
 
-## Running it
+## Troubleshooting
 
-You need **two processes**: the web server and the realtime service.
+### 403 Forbidden
 
-### Development
+Almost always an `.htaccess`/permissions issue.
+
+1. Make sure `public/.htaccess` was uploaded — hidden files starting with a dot
+   are silently skipped by many FTP clients and by some unzip tools. Turn on
+   "show hidden files" and check both `.htaccess` files exist.
+2. Folder permissions should be `755`, files `644`.
+3. If your host disables `AllowOverride`, `.htaccess` is ignored entirely.
+   That is fine — the game detects it and uses `index.php`-style URLs
+   automatically. Just open `.../RoyalSpin/public/index.php`.
+
+### 500 Internal Server Error
+
+Usually PHP is older than 8.2, or the storage folder is not writable. Set
+`APP_DEBUG=true` in `.env` temporarily to see the real message.
+
+### "The storage folder is not writable"
+
+Set `storage/` to `755`; if your host needs it, `777`. Nothing else.
+
+### The page loads but links go to the wrong place
+
+Set the prefix explicitly in `.env`:
+
+```ini
+APP_BASE_PATH=/RoyalSpin/public
+```
+
+### Everything works but feels a second behind
+
+That is the HTTP polling transport, which is what runs when no WebSocket
+service is available (normal on shared hosting). The game is fully playable;
+see [Realtime](#realtime-two-transports) if you want the instant version.
+
+---
+
+## Realtime: two transports
+
+The game ships two ways of keeping screens in sync, and picks automatically.
+
+| | WebSocket | HTTP polling |
+|---|---|---|
+| Latency | instant | ~1 second |
+| Needs | a long-running PHP process + an open port | nothing |
+| Typical host | VPS, dedicated server | shared hosting |
+
+**Both carry the identical event stream** — the server writes every event to one
+outbox table and each transport just delivers it. Gameplay, reconnect and
+fairness are the same either way; only latency differs.
+
+The server decides and tells the browser, so no time is wasted attempting a
+connection that cannot succeed:
+
+* `WS_PUBLIC_URL` set → WebSocket.
+* Host is `localhost` or a LAN address → WebSocket (development).
+* Anything else → polling.
+
+Force it with `WS_ENABLED=true|false` in `.env`.
+
+### Turning on the instant version
+
+Only possible if your host lets you run a background process (VPS, or shared
+hosting with SSH + a process manager):
 
 ```bash
-# terminal 1 — web
-php -S 0.0.0.0:8080 -t public
-
-# terminal 2 — realtime
 php bin/ws-server.php
 ```
 
-Open <http://localhost:8080>. To play from a phone on the same Wi-Fi, use your
-machine's LAN IP (e.g. `http://192.168.1.20:8080`) — the client derives the
-WebSocket URL from the page host automatically.
-
-### Zero-setup local run (no MySQL)
-
-SQLite is fully supported for trying it out and for the test suite:
+then in `.env`:
 
 ```ini
-DB_DRIVER=sqlite
-DB_DATABASE=/absolute/path/to/royal-spin/database/royal_spin.sqlite
+WS_PUBLIC_URL=wss://your-domain.tld/ws
 ```
+
+and proxy `/ws` to port 8081 (see [Production deployment](#production-deployment)).
+On ordinary shared hosting this is not possible — which is exactly why the
+polling transport exists.
+
+---
+
+## Running it locally
 
 ```bash
-php bin/migrate.php && php -S 0.0.0.0:8080 -t public
+php -S 0.0.0.0:8080 -t public          # that is enough to play
+php bin/ws-server.php                  # optional: instant updates
 ```
 
-MySQL remains the production target — it is what the row-level locking in
-`GameService` is written for.
+Open <http://localhost:8080>. To play from a phone on the same Wi-Fi, use your
+machine's LAN IP (e.g. `http://192.168.1.20:8080`).
 
 ---
 
 ## Playing your first match
 
-1. Open the site, click **Create account**, register as e.g. `Tobi`.
+1. Open `https://your-domain.tld/RoyalSpin/`, click **Create account**, register as e.g. `Tobi`.
 2. On the dashboard press **Create room**, pick a player count → you get a code like `K7M4`.
 3. On a second device (or a private window), register `Alex` and enter `K7M4` under **Join room**.
 4. `Alex` presses **I'm ready**, `Tobi` presses **Start match**.
@@ -245,7 +301,7 @@ php tests/run.php                  # everything
 php tests/run.php SlotEngineTest   # one suite
 ```
 
-87 tests / ~21,500 assertions, no dependencies. Database-backed suites create a
+103 tests / ~21,600 assertions, no dependencies. Database-backed suites create a
 throwaway SQLite file per test.
 
 | Suite | Covers |
@@ -255,6 +311,7 @@ throwaway SQLite file per test.
 | `MultiplayerTest` | room codes, full/unknown rooms, host-only start, turn order, wrong-player rejection, double-tap idempotency, shop tampering, private events, disconnect handling, turn auto-skip |
 | `ReconnectTest` | exact mid-turn restore, upgrades surviving a restart, shop offers not re-rolling on refresh, no double payout, event replay from any sequence, single-use WS tickets |
 | `MatchEndTest` | target ends the match, actions blocked afterwards, placements, room released while history survives, code reuse, permanent account stats, upgrades reset between matches |
+| `DeploymentTest` | subfolder installs, URL generation with and without `mod_rewrite`, `PATH_INFO` routing, and a regression guard against the `.htaccess` rule that caused a 403 |
 
 ---
 
@@ -485,6 +542,10 @@ Being honest about what is *not* in this build:
   soundtrack. Replacing `sound.js` with sample playback is a contained change.
 * **No email verification or password reset.** Registration is username + email +
   password; there is no mail transport wired up.
+* **SQLite is the zero-setup default**, and it serialises writes. That is
+  entirely fine for this game — a match is a handful of writes per turn — but if
+  you expect dozens of simultaneous matches, point `DB_DRIVER` at MySQL, which
+  is what the row-level locking in `GameService` was written for.
 * **Bot opponents exist only in the simulator.** There are no AI players in the real
   game — a match needs real humans, exactly as specified.
 * **The auto-skip timer needs the realtime service running.** If `ws-server.php` is

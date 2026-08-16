@@ -52,9 +52,10 @@ final class GameController
             'symbols'   => Symbols::publicTable(),
             'rarities'  => Config::array('game.rarities'),
             'bodyClass' => 'page-game',
-            // When WS_PUBLIC_URL is unset the client derives ws://<page host>:<WS_PORT>.
-            'wsUrl'     => Env::get('WS_PUBLIC_URL', ''),
-            'wsPort'    => Env::int('WS_PORT', 8081),
+            // Tells the client whether a WebSocket is worth attempting at all.
+            // On hosting that cannot run the service it goes straight to the
+            // HTTP polling transport instead of stalling on dead connections.
+            'realtime'  => \RoyalSpin\Realtime\BrowserConfig::resolve(),
             'heartbeat' => Config::int('game.connection.heartbeat_seconds', 15),
         ]);
     }

@@ -6,7 +6,7 @@
  * a turn — those all arrive from the server.
  */
 
-import { actionId } from '../core/api.js';
+import { actionId, url } from '../core/api.js';
 import { Transport } from '../core/transport.js';
 import { animateNumber, toast, vibrate } from '../core/ui.js';
 import { sound } from '../core/sound.js';
@@ -54,6 +54,7 @@ export function initGame(root) {
 
     const transport = new Transport({
         matchId: config.matchId,
+        wsEnabled: config.wsEnabled,
         wsUrl: config.wsUrl,
         wsPort: config.wsPort,
         heartbeat: config.heartbeat,
@@ -69,7 +70,7 @@ export function initGame(root) {
             }
             if (mode === 'gone') {
                 toast('This match is no longer available.', 'error');
-                setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
+                setTimeout(() => { window.location.href = url('/dashboard'); }, 1500);
                 return;
             }
             const degraded = mode === 'connecting';
@@ -163,7 +164,7 @@ export function initGame(root) {
         }
 
         if (match.status === 'finished') {
-            setTimeout(() => { window.location.href = `/result/${match.id}`; }, 4200);
+            setTimeout(() => { window.location.href = url(`/result/${match.id}`); }, 4200);
         }
     }
 
@@ -389,7 +390,7 @@ export function initGame(root) {
             el.bigwin.querySelector('[data-bigwin-amount]').textContent = '';
             el.bigwin.classList.add('is-visible');
         }
-        setTimeout(() => { window.location.href = `/result/${config.matchId}`; }, 3600);
+        setTimeout(() => { window.location.href = url(`/result/${config.matchId}`); }, 3600);
     }
 
     /* ================================================================== */
@@ -455,7 +456,7 @@ export function initGame(root) {
     debugRefresh?.addEventListener('click', async () => {
         const output = root.querySelector('[data-debug-output]');
         try {
-            const response = await fetch(`/api/match/${config.matchId}/debug`, {
+            const response = await fetch(url(`/api/match/${config.matchId}/debug`), {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
             });

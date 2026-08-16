@@ -10,6 +10,9 @@ $isHost = (int) $lobby['host_user_id'] === (int) $user['id'];
          'userId'     => (int) $user['id'],
          'isHost'     => $isHost,
          'minPlayers' => (int) $lobby['min_players'],
+         'wsEnabled'  => (bool) $realtime['enabled'],
+         'wsUrl'      => (string) $realtime['url'],
+         'wsPort'     => (int) $realtime['port'],
      ]) ?>">
 
     <div class="card center">

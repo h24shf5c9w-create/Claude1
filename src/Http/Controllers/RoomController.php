@@ -33,7 +33,7 @@ final class RoomController
 
         /** @var array<string,mixed> $room */
         $room = $result['room'];
-        Response::json(['ok' => true, 'room' => $room, 'redirect' => '/lobby/' . $room['code']]);
+        Response::json(['ok' => true, 'room' => $room, 'redirect' => url('/lobby/' . $room['code'])]);
     }
 
     public function join(Request $request): never
@@ -52,13 +52,13 @@ final class RoomController
                 'ok'        => true,
                 'reconnect' => true,
                 'match_id'  => (int) $result['match_id'],
-                'redirect'  => '/game/' . (int) $result['match_id'],
+                'redirect'  => url('/game/' . (int) $result['match_id']),
             ]);
         }
 
         /** @var array<string,mixed> $room */
         $room = $result['room'];
-        Response::json(['ok' => true, 'room' => $room, 'redirect' => '/lobby/' . $room['code']]);
+        Response::json(['ok' => true, 'room' => $room, 'redirect' => url('/lobby/' . $room['code'])]);
     }
 
     public function lobby(Request $request, string $code): never
@@ -90,6 +90,7 @@ final class RoomController
             'title'    => 'Lobby ' . $room['code'],
             'user'     => AuthService::user($userId),
             'lobby'    => $service->lobbyState($roomId),
+            'realtime' => \RoyalSpin\Realtime\BrowserConfig::resolve(),
             'bodyClass'=> 'page-lobby',
         ]);
     }
@@ -143,7 +144,7 @@ final class RoomController
         if (!($result['ok'] ?? false)) {
             Response::error((string) ($result['error'] ?? 'Could not leave the room.'), 422);
         }
-        Response::json(['ok' => true, 'redirect' => '/dashboard']);
+        Response::json(['ok' => true, 'redirect' => url('/dashboard')]);
     }
 
     public function start(Request $request, string $roomId): never
@@ -156,6 +157,6 @@ final class RoomController
         }
 
         $matchId = (int) $result['match_id'];
-        Response::json(['ok' => true, 'match_id' => $matchId, 'redirect' => '/game/' . $matchId]);
+        Response::json(['ok' => true, 'match_id' => $matchId, 'redirect' => url('/game/' . $matchId)]);
     }
 }

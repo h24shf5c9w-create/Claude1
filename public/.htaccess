@@ -1,10 +1,28 @@
-# Royal Spin — Apache front controller + hardening.
-# Requires mod_rewrite. Set AllowOverride All for this directory.
+# =============================================================================
+#  ROYAL SPIN — web root
+#
+#  Works both when DocumentRoot points here and when the project sits in a
+#  subfolder (public_html/RoyalSpin/public/).
+# =============================================================================
+
+# Undo any inherited deny from a parent directory, so this folder is always
+# reachable even if the hosting panel added a restrictive rule further up.
+<IfModule mod_authz_core.c>
+    Require all granted
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Allow from all
+</IfModule>
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Serve real files and directories directly (CSS, JS, favicon).
+    # RewriteBase is derived automatically; setting it explicitly is only
+    # needed on hosts with unusual alias configurations.
+    # RewriteBase /RoyalSpin/public/
+
+    # Serve real files and folders directly (CSS, JS, favicon).
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
@@ -19,7 +37,24 @@
     Header always set Referrer-Policy "same-origin"
 </IfModule>
 
+# Long cache for fingerprinted assets (?v=<mtime>).
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType image/svg+xml "access plus 7 days"
+</IfModule>
+
 # Never serve dotfiles.
 <FilesMatch "^\.">
-    Require all denied
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
+
+DirectoryIndex index.php
+Options -Indexes
