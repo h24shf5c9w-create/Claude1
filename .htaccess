@@ -1,0 +1,5 @@
+# Safety net: if the document root was mistakenly pointed at the project root
+# instead of public/, refuse to serve anything from here.
+#
+# The correct configuration is DocumentRoot /path/to/royal-spin/public
+Require all denied

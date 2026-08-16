@@ -1,0 +1,25 @@
+# Royal Spin — Apache front controller + hardening.
+# Requires mod_rewrite. Set AllowOverride All for this directory.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Serve real files and directories directly (CSS, JS, favicon).
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Everything else goes through the front controller.
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "same-origin"
+</IfModule>
+
+# Never serve dotfiles.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
