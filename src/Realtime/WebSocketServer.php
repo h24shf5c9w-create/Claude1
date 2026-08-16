@@ -27,6 +27,9 @@ final class WebSocketServer
     /** @var array<int,Connection> */
     private array $connections = [];
 
+    /** @var array<int,int> stream resource id => connection id (O(1) lookup per tick) */
+    private array $socketIndex = [];
+
     /** @var array<int,array<int,true>> matchId => set of connection ids */
     private array $matchSubscribers = [];
 
@@ -147,7 +150,8 @@ final class WebSocketServer
             stream_set_blocking($socket, false);
 
             $connection = new Connection($this->nextConnectionId++, $socket, is_string($peer) ? $peer : 'unknown');
-            $this->connections[$connection->id] = $connection;
+            $this->connections[$connection->id]     = $connection;
+            $this->socketIndex[(int) $socket]       = $connection->id;
 
             if (count($this->connections) > 2000) {
                 $this->disconnect($connection, 'server at capacity');
@@ -158,12 +162,8 @@ final class WebSocketServer
     /** @param resource $socket */
     private function connectionFor($socket): ?Connection
     {
-        foreach ($this->connections as $connection) {
-            if ($connection->socket === $socket) {
-                return $connection;
-            }
-        }
-        return null;
+        $connectionId = $this->socketIndex[(int) $socket] ?? null;
+        return $connectionId === null ? null : ($this->connections[$connectionId] ?? null);
     }
 
     private function readFrom(Connection $connection): void
@@ -591,7 +591,7 @@ final class WebSocketServer
             unset($this->lobbySubscribers[$connection->roomId][$connection->id]);
         }
 
-        unset($this->connections[$connection->id]);
+        unset($this->connections[$connection->id], $this->socketIndex[(int) $connection->socket]);
         if (is_resource($connection->socket)) {
             @fclose($connection->socket);
         }

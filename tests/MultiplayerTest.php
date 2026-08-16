@@ -269,6 +269,35 @@ final class MultiplayerTest extends DatabaseTestCase
         );
     }
 
+    /**
+     * A double-tapped "end turn" must report the stored success, not "it is not
+     * your turn" — by the time the duplicate lands the turn has already moved
+     * on, and the player did nothing wrong.
+     */
+    public function testDoubleTappingEndTurnReportsSuccessNotAnError(): void
+    {
+        $match  = $this->startMatch([$this->makeUser('a'), $this->makeUser('b')]);
+        $game   = new GameService(new Rng(61));
+        $active = $this->activeUserId($match['match_id']);
+
+        $roll = $game->rollDice($active, $match['match_id']);
+        for ($i = 0; $i < (int) $roll['dice']['spins']; $i++) {
+            $game->spin($active, $match['match_id']);
+        }
+
+        $first  = $game->endTurn($active, $match['match_id'], 'end-once');
+        $second = $game->endTurn($active, $match['match_id'], 'end-once');
+
+        $this->assertTrue($first['ok']);
+        $this->assertTrue($second['ok'], 'The duplicate must not surface as an error');
+        $this->assertTrue(($second['replayed'] ?? false) === true);
+        $this->assertSame($first['next_seat'], $second['next_seat']);
+
+        // ...and the turn only advanced once.
+        $row = Db::first('SELECT turn_number FROM matches WHERE id = :id', ['id' => $match['match_id']]);
+        $this->assertSame(2, (int) $row['turn_number'], 'The turn must advance exactly once');
+    }
+
     public function testARejectedActionIdCanBeRetried(): void
     {
         $match  = $this->startMatch([$this->makeUser('a'), $this->makeUser('b')]);

@@ -1143,18 +1143,25 @@ final class GameService
                 return ['ok' => false, 'error' => 'You are not part of this match.'];
             }
 
-            if ((string) $match['status'] !== 'active') {
-                return ['ok' => false, 'error' => 'This match has already finished.'];
-            }
-            if ((int) $player['seat'] !== (int) $match['current_seat']) {
-                return ['ok' => false, 'error' => 'It is not your turn.'];
-            }
-
             // --- idempotency claim -------------------------------------------
+            // Deliberately *before* the turn/status checks: if this action id
+            // already succeeded, the stored result is the correct answer even
+            // though the turn has since moved on. Checking the turn first would
+            // make a double-tapped "end turn" report "it is not your turn",
+            // which is both wrong and alarming.
             $replay = $this->claimAction($matchId, $userId, $actionId, $action);
             if ($replay !== null) {
                 $replay['replayed'] = true;
                 return $replay;
+            }
+
+            if ((string) $match['status'] !== 'active') {
+                $this->releaseAction($matchId, $userId, $actionId);
+                return ['ok' => false, 'error' => 'This match has already finished.'];
+            }
+            if ((int) $player['seat'] !== (int) $match['current_seat']) {
+                $this->releaseAction($matchId, $userId, $actionId);
+                return ['ok' => false, 'error' => 'It is not your turn.'];
             }
 
             $result = $callback($match, $player);
@@ -1166,14 +1173,24 @@ final class GameService
                     'result' => json_encode($result, JSON_UNESCAPED_UNICODE) ?: null,
                 ], ['match_id' => $matchId, 'user_id' => $userId, 'action_id' => $actionId]);
             } else {
-                Db::run(
-                    'DELETE FROM action_log WHERE match_id = :match_id AND user_id = :user_id AND action_id = :action_id',
-                    ['match_id' => $matchId, 'user_id' => $userId, 'action_id' => $actionId]
-                );
+                $this->releaseAction($matchId, $userId, $actionId);
             }
 
             return $result;
         });
+    }
+
+    /**
+     * Forget a rejected action so the client may legitimately retry the same
+     * id once whatever was wrong has been fixed.
+     */
+    private function releaseAction(int $matchId, int $userId, string $actionId): void
+    {
+        Db::run(
+            'DELETE FROM action_log
+              WHERE match_id = :match_id AND user_id = :user_id AND action_id = :action_id AND result IS NULL',
+            ['match_id' => $matchId, 'user_id' => $userId, 'action_id' => $actionId]
+        );
     }
 
     /**

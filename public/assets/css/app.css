@@ -679,6 +679,9 @@ a:hover, a:focus-visible { text-decoration: underline; }
     opacity: 0; visibility: hidden;
     transition: opacity .25s ease, visibility .25s ease;
 }
+/* `.sheet { display:flex }` outranks the UA's `[hidden] { display:none }`,
+   so the attribute needs an explicit rule of its own. */
+.sheet[hidden] { display: none; }
 .sheet.is-open { opacity: 1; visibility: visible; }
 .sheet__panel {
     width: 100%;
